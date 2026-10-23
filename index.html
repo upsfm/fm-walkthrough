@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FM Daily Walkthrough</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{--brand:#CB4B2F;--ink:#18181B;--bg:#FAFAFA;--card:#fff;--muted:#71717A;--line:#E4E4E7;--ok:#15803D;--na:#71717A}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{background:#fff;color:var(--ink);padding:10px 12px;position:sticky;top:0;z-index:5;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;border-bottom:3px solid var(--brand)}
+header .logo{height:30px;width:auto;display:block}
+header .title{text-align:center}
+header h1{font-size:17px;margin:0;white-space:nowrap}
+header .sub{font-size:11px;color:var(--muted)}
+.navbar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 12px;background:var(--ink);color:#fff;font-size:12px;position:sticky;top:57px;z-index:4}
+.navbar #whoSite{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.navbar .nav{display:flex;gap:6px;flex-shrink:0}
+.navbar .nav button{padding:5px 9px;font-size:12px;background:transparent;color:#fff;border:1px solid #52525B}
+@media (max-width:420px){header .logo{height:22px}header h1{font-size:15px}.navbar{top:51px}}
+.who{font-size:13px;color:var(--muted);margin-bottom:10px}
+.rpt-head{display:flex;align-items:center;gap:12px;border-bottom:3px solid var(--brand);padding-bottom:8px;margin-bottom:10px}
+.rpt-head img{height:34px}
+.rpt-head .t{flex:1;text-align:center;font-size:18px;font-weight:700}
+.rpt-head .d{font-size:12px;color:var(--muted);text-align:right}
+.summary h3{color:var(--brand);margin:18px 0 6px}
+.signbox{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:28px}
+.signbox div{border-top:1px solid var(--ink);padding-top:4px;font-size:12px}
+.remarks{border:1px solid var(--line);min-height:90px;border-radius:6px;margin-top:6px}
+main{max-width:720px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:13px;color:var(--muted);margin:8px 0 4px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff;color:var(--ink)}
+textarea{min-height:60px;resize:vertical}
+button{font:inherit;border:0;border-radius:8px;padding:10px 14px;cursor:pointer}
+.btn{background:var(--brand);color:#fff;font-weight:600}
+.btn2{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.area{font-size:13px;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px}
+.task{font-weight:600;margin-bottom:6px}
+.seg{display:flex;gap:6px;margin-top:4px}
+.seg button{flex:1;background:#fff;border:1px solid var(--line);color:var(--ink);padding:8px 4px;font-size:14px}
+.seg button.on[data-v="OK"]{background:var(--ok);color:#fff;border-color:var(--ok)}
+.seg button.on[data-v="Issue"]{background:var(--brand);color:#fff;border-color:var(--brand)}
+.seg button.on[data-v="NA"]{background:var(--na);color:#fff;border-color:var(--na)}
+.seg button.on[data-v="Yes"],.seg button.on[data-v="No"],.seg button.on[data-v="High"],.seg button.on[data-v="Medium"],.seg button.on[data-v="Low"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.photo{margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.photo label.btn,.photo label.btn2{padding:10px 14px;border-radius:8px;font-size:14px;cursor:pointer}
+.photo img{width:84px;height:84px;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.carried{background:#FFF7F5;border-color:var(--brand)}
+.prev{font-size:13px;color:var(--muted);margin-bottom:6px}
+.prev img{display:block;width:72px;height:72px;object-fit:cover;border-radius:6px;margin:6px 0}
+.warn{color:var(--brand);font-size:13px;margin-top:6px}
+.prog{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:6px}
+.prog div{height:100%;background:var(--brand);width:0}
+.hidden{display:none}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border:1px solid var(--line);padding:6px;text-align:left;vertical-align:top}
+th{background:var(--brand);color:#fff}
+.list-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.list-item:last-child{border-bottom:0}
+.pill{font-size:12px;padding:2px 8px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.pill.bad{background:#FBE9E5;border-color:var(--brand);color:var(--brand)}
+#report img.ph{width:120px;height:120px;object-fit:cover}
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+@page{size:A4;margin:14mm 10mm 16mm 10mm;@bottom-right{content:"Page " counter(page) " of " counter(pages);font-size:9pt;color:#71717A}@bottom-left{content:"FM Daily Walkthrough - UPS";font-size:9pt;color:#71717A}}
+@media print{header,.noprint{display:none!important}body{background:#fff;font-size:11px}main{max-width:none;padding:0}.card{border:0;padding:0}
+  .rpt-table{width:100%;border-collapse:collapse}.rpt-table>thead{display:table-header-group}.rpt-table>thead td,.rpt-table>tbody>tr>td{border:0;padding:0}
+  tr{page-break-inside:avoid}.summary{page-break-before:always}#report img.ph{width:90px;height:90px}}
+</style>
+</head>
+<body>
+<header>
+  <div><img class="logo logoImg" src="" alt="UPS"></div>
+  <div class="title"><h1>FM Daily Walkthrough</h1><div class="sub">UPSPL Integrated Services</div></div>
+  <div></div>
+</header>
+<div class="navbar noprint" id="nav">
+  <span id="whoSite"></span>
+  <span class="nav"><button class="btn2" onclick="show('home')">Home</button><button class="btn2" onclick="show('settings')">Setup</button><button class="btn2" onclick="logout()">Logout</button></span>
+</div>
+<main>
+
+<!-- LOGIN -->
+<section id="login" class="hidden">
+  <div class="card" style="max-width:420px;margin:24px auto">
+    <div style="text-align:center;margin-bottom:8px"><img class="logoImg" src="" alt="UPS" style="height:44px"></div>
+    <div style="text-align:center;font-weight:700;font-size:18px;margin-bottom:4px">Contract Login</div>
+    <div style="text-align:center;font-size:13px;color:var(--muted)">Select your contract and enter its 4-digit PIN.</div>
+    <label>Contract</label><select id="loginSite"></select>
+    <label>PIN</label><input id="loginPin" type="password" inputmode="numeric" maxlength="4" placeholder="4-digit PIN" onkeydown="if(event.key==='Enter')login()">
+    <div id="loginErr" class="warn"></div>
+    <div class="btnrow"><button class="btn" style="width:100%" onclick="login()">Login</button></div>
+  </div>
+</section>
+
+<!-- HOME -->
+<section id="home">
+  <div class="card noprint" id="acctCard">
+    <div id="acctInfo" style="font-size:14px"></div>
+    <div class="btnrow"><button class="btn" id="btnSignIn" onclick="signIn()">Sign in with Microsoft</button><button class="btn2 hidden" id="btnSync" onclick="syncPending(true)">Upload pending</button><button class="btn2 hidden" id="btnSignOut" onclick="signOut()">Sign out</button></div>
+  </div>
+  <div class="card">
+    <label>Contract / Site</label><select id="selSite" disabled></select>
+    <div style="font-size:13px;color:var(--muted);margin-top:6px">Operations Manager: <b id="omName" style="color:var(--ink)"></b></div>
+    <label>FM Name</label><select id="fmPick" onchange="pickFm()"></select><input id="selFm" list="fmNames" placeholder="Enter your name" style="margin-top:8px"><datalist id="fmNames"></datalist>
+    <label>Date</label><input type="date" id="selDate">
+    <div class="btnrow"><button class="btn" onclick="startWalk()">Start / Continue Walkthrough</button></div>
+  </div>
+  <div class="card">
+    <div style="font-weight:700">Saved walkthroughs</div>
+    <div id="history"></div>
+  </div>
+</section>
+
+<!-- WALKTHROUGH -->
+<section id="walk" class="hidden">
+  <div class="card">
+    <div id="walkHead" style="font-weight:700"></div>
+    <div class="sub" id="walkCount" style="color:var(--muted);font-size:13px"></div>
+    <div id="posMsg" style="font-size:13px;color:var(--muted);margin-top:4px"></div>
+    <div class="prog"><div id="progBar"></div></div>
+  </div>
+  <div id="checks"></div>
+  <div class="card noprint">
+    <div id="submitWarn" class="warn"></div>
+    <div class="btnrow">
+      <button class="btn2" onclick="saveWalk(false)">Save Draft</button>
+      <button class="btn" onclick="saveWalk(true)">Submit</button>
+    </div>
+  </div>
+</section>
+
+<!-- REPORT -->
+<section id="reportSec" class="hidden">
+  <div class="btnrow noprint" style="margin-bottom:12px">
+    <button class="btn" onclick="window.print()">Download PDF</button>
+    <button class="btn" id="btnShare" onclick="shareReport(curReport)">Share PDF</button>
+    <button class="btn2" onclick="exportExcel(curReport)">Download Excel</button>
+    <button class="btn2" onclick="openWalkId(curReport.id)">Edit</button>
+  </div>
+  <div id="syncMsg" class="warn noprint" style="margin-bottom:8px"></div>
+  <div class="card" id="report"></div>
+</section>
+
+<!-- SETTINGS -->
+<section id="settings" class="hidden">
+  <div class="card">
+    <div style="font-weight:700">Facility Managers</div>
+    <div id="fmList"></div>
+    <div class="btnrow"><input id="newFm" placeholder="Add FM name" style="flex:1"><button class="btn" onclick="addItem('fms','newFm')">Add</button></div>
+  </div>
+  <div class="card">
+    <div style="font-weight:700">Export all</div>
+    <div class="btnrow"><button class="btn2" onclick="exportAll()">Download all walkthroughs (Excel)</button></div>
+  </div>
+</section>
+
+</main>
+<script>
+const CHECKLIST=[
+["Main Gate & Security","Security guards present in full uniform, as per deployment"],
+["Main Gate & Security","Visitor / vehicle register updated"],
+["Main Gate & Security","Boom barrier, gate and access control working"],
+["Main Gate & Security","CCTV cameras live and DVR/NVR recording"],
+["Lobby & Common Areas","Lobby floor, glass and furniture clean"],
+["Lobby & Common Areas","Corridors and staircases clean and free of obstruction"],
+["Lobby & Common Areas","Common area lights working, no fused lamps"],
+["Lobby & Common Areas","Notice boards updated and tidy"],
+["Lifts","All lifts operational, no abnormal noise or jerks"],
+["Lifts","Lift car clean, lights, fan and display working"],
+["Lifts","Alarm / intercom tested and working"],
+["Lifts","AMC service and license validity displayed"],
+["Electrical / Power","Transformer and HT/LT panel area clean, no tripping"],
+["Electrical / Power","Meter room locked, no loose wiring"],
+["Electrical / Power","Rubber mats and shock treatment chart in place"],
+["DG Set","DG fuel level adequate (record %)"],
+["DG Set","DG battery, coolant and oil level OK, no leaks"],
+["DG Set","DG log book updated (run hours)"],
+["Water / Plumbing","Overhead and underground tank levels OK"],
+["Water / Plumbing","Pumps (domestic, flushing, booster) working"],
+["Water / Plumbing","No leakage in common pipelines or shafts"],
+["Water / Plumbing","WTP running, water quality checked (TDS)"],
+["STP","STP running, all blowers and pumps working"],
+["STP","No foul smell, treated water clear"],
+["STP","STP log sheet updated"],
+["Fire Safety","Fire pump panel on AUTO, jockey pump OK"],
+["Fire Safety","Fire extinguishers in place and within refill date"],
+["Fire Safety","Fire exits and staircases clear, exit signs lit"],
+["Fire Safety","Fire alarm panel healthy, no faults"],
+["Housekeeping","Housekeeping staff present as per deployment"],
+["Housekeeping","Garbage collected and segregated, bins clean"],
+["Housekeeping","Washrooms (common/staff) clean and stocked"],
+["Landscape & Amenities","Garden maintained, watering done"],
+["Landscape & Amenities","Clubhouse, gym and pool clean and equipment working"],
+["Landscape & Amenities","Children's play area safe, no damage"],
+["Parking & Basement","Basement clean, lights working, no water logging"],
+["Parking & Basement","Exhaust / ventilation fans working"],
+["Admin","Residents' complaints from previous day closed"],
+["Admin","Staff attendance verified"],
+["Admin","Vendor / AMC visits for the day noted"],
+["Others",""],["Others",""],["Others",""],["Others",""],["Others",""]
+];
+const SITES=[["RANI MEYYAMMAI-MS- Res-IFM", "Dhanasekar (USE 62456)"], ["AREL-AZURE-SAN- Res-Utility(TECH)", "Dhanasekar (USE 62456)"], ["ARTISTICA-SHO- Res-IFM", "Dhanasekar (USE 62456)"], ["BANYAN-ALA- Res-IFM", "Dhanasekar (USE 62456)"], ["BELLA VISTA-IYY- Res-IFM", "Dhanasekar (USE 62456)"], ["CLOVER BY THE RIVER-KTPM- Res-IFM", "Dhanasekar (USE 62456)"], ["FAIRMONT-GDY- Res-IFM", "Dhanasekar (USE 62456)"], ["FOMRA HUES-IYY- Res-IFM", "Dhanasekar (USE 62456)"], ["GOODWOOD-TEY- Res-IFM", "Dhanasekar (USE 62456)"], ["OCEANIQUE-ECR- Res-IFM", "Dhanasekar (USE 62456)"], ["PLATINA-POR- Res-IFM", "Dhanasekar (USE 62456)"], ["REFLECTION-ECR- Res-IFM", "Dhanasekar (USE 62456)"], ["SAPPHIRE-SHO- Res-IFM", "Dhanasekar (USE 62456)"], ["Villa96-ECR- Res-IFM", "Dhanasekar (USE 62456)"], ["INDIALAND TECH PARK-CBE- COM-HK", "Dinesh Muthusamy (USF 947)"], ["MAHINDRA WC-SENG- Com-IFM", "Karthikeyan Manoharan (USE 12876)"], ["SINCERE SYNDICATION-TNAG- Res-HK", "Karthikeyan Manoharan (USE 12876)"], ["TCI INDIA-ADA- Res-HK", "Karthikeyan Manoharan (USE 12876)"], ["ESTANCIA-POTI- Res-IFM", "Karthikeyan Manoharan (USE 12876)"], ["GALLERIA-PV- Res-IFM", "Karthikeyan Manoharan (USE 12876)"], ["ICON-KOY- Res-IFM", "Dhanasekar (USE 62456)"], ["IRIS COURT-CGL- Res-IFM", "Karthikeyan Manoharan (USE 12876)"], ["OPALINE-ECR- Res-IFM", "Karthikeyan Manoharan (USE 12876)"], ["PENNINSULA-MANP- Res-IFM", "Karthikeyan Manoharan (USE 12876)"], ["REGENCY RAHEJA -RAP- Res-IFM", "Prakash P (USE 955)"], ["RESIDENCY EMBASSY -PER- Res-IFM", "Karthikeyan Manoharan (USE 12876)"], ["RIBBON WALK-MBKM- Res-IFM", "Karthikeyan Manoharan (USE 12876)"], ["SHANTI GULMOHAR-RAP- Res-IFM", "Karthikeyan Manoharan (USE 12876)"], ["SHANTINIKETAN-ADKM- Res-IFM", "Karthikeyan Manoharan (USE 12876)"], ["STAFFORD-TMVL- Res-IFM", "Karthikeyan Manoharan (USE 12876)"], ["L&T-WTC-ENA- Com-IFM", "Manodeepan D (USE 5319)"], ["ZONASHA IT-BLR- Com-IFM", "Manodeepan D (USE 5319)"], ["FORTUNE-KOV- Com-IFM", "Prakash P (USE 955)"], ["AVM-VAD- Res-IFM", "Karthikeyan Manoharan (USE 12876)"], ["BLOOMINGADALE-PAM- Res-Utility", "Prakash P (USE 955)"], ["FANTASTIC URBAN TREE-VAN- Res-IFM", "Prakash P (USE 955)"], ["IRENE-MANP- Res-Utility", "Prakash P (USE 955)"], ["ORCHARDS-VAD- Res-IFM", "Prakash P (USE 955)"], ["SIGNATURE-MAD- Res-Utility FMS", "Karthikeyan Manoharan (USE 12876)"], ["SIGNATURE-MAD- Res-Utility STP", "Karthikeyan Manoharan (USE 12876)"], ["THE ATRIUM-TYMR- Res-IFM", "Prakash P (USE 955)"], ["YS ENCLAVE-VIR- Res-IFM", "Prakash P (USE 955)"], ["PVR-NUN- Com-Utility", "Rakesh Prabakaran (USE 8034)"], ["TEMPLE BAY-KOV- Com-Utility FMS", "Rakesh Prabakaran (USE 8034)"], ["CG ZENITH-MED- Res-IFM", "Rakesh Prabakaran (USE 8034)"], ["COSMO CITY-PDP- Res-HK", "Rakesh Prabakaran (USE 8034)"], ["COSMO CITY-PDP- Res-Utility", "Rakesh Prabakaran (USE 8034)"], ["DRA Skylantis-SHO- Res-IFM", "Rakesh Prabakaran (USE 8034)"], ["GARDEN CITY ONE-FMS-THA- Res-IFM", "Rakesh Prabakaran (USE 8034)"], ["GOOD FORTUNE-PER- Res-Utility", "Rakesh Prabakaran (USE 8034)"], ["GREENSVILLE-SHO- Res-IFM", "Rakesh Prabakaran (USE 8034)"], ["MAPLETON-NVU- Res-IFM", "Rakesh Prabakaran (USE 8034)"], ["PALLAGIO-THO- Res-IFM", "Rakesh Prabakaran (USE 8034)"], ["PANCHASHEEL-AMB- Res-IFM", "Rakesh Prabakaran (USE 8034)"], ["PBEL CITY-KEL- Res-IFM", "Rakesh Prabakaran (USE 8034)"], ["RISINGTON-OMR- Res-IFM", "Rakesh Prabakaran (USE 8034)"], ["SAVOYE-SHO- Res-IFM", "Rakesh Prabakaran (USE 8034)"], ["THE ACE-PRGD- Res-IFM", "Rakesh Prabakaran (USE 8034)"], ["THE ADDRESS-SHO- Res-IFM", "Rakesh Prabakaran (USE 8034)"], ["SKY CITY-AMB- Res-IFM", "Karthikeyan Manoharan (USE 12876)"], ["CLOUD GRAZE-KKN- Res-IFM", "Dhanasekar (USE 62456)"]];
+const OM=Object.fromEntries(SITES);
+const FM_BY_SITE={"GALLERIA-PV- Res-IFM": ["Arokiasamy", "Karthikeyan Manoharan", "Vanaraj", "Gopikrishnan G A"], "ARTISTICA-SHO- Res-IFM": ["Jayabalan", "Subhash Arumugam"], "AVM-VAD- Res-IFM": ["Karthikeyan Manoharan", "Saravanan M"], "THE ATRIUM-TYMR- Res-IFM": ["Manikandan S"], "AREL-AZURE-SAN- Res-Utility(TECH)": ["Mathivanan Panduvam"], "BLOOMINGADALE-PAM- Res-Utility": ["Ravi M", "Vigneshwar Soundarapandian", "Jayaprakash"], "IRENE-MANP- Res-Utility": ["Lakshman K", "Selvamurugan"], "SAVOYE-SHO- Res-IFM": ["Anandaraman", "Dhinesh V"], "PALLAGIO-THO- Res-IFM": ["Saravanan Rajendiran"], "CG ZENITH-MED- Res-IFM": ["Kaviarasan Narayanamoorthy"], "COSMO CITY-PDP- Res-HK": ["Ramachandran Sankar"], "COSMO CITY-PDP- Res-Utility": ["Ramachandran Sankar"], "DRA Skylantis-SHO- Res-IFM": ["Hariramesh Arumugam"], "RESIDENCY EMBASSY -PER- Res-IFM": ["Antony Pradhap J", "Karthikeyan Manoharan", "Habib Mohamed J", "Naveen Raj", "Praveenraj", "Reagon Raj"], "ESTANCIA-POTI- Res-IFM": ["Karthikeyan Manoharan", "Pushpanathan P", "Rajesh Kumar V", "Saravanakumar Kalidass"], "FAIRMONT-GDY- Res-IFM": ["Perumal P", "Muthukrishnan R"], "FOMRA HUES-IYY- Res-IFM": ["Puratchimani Subramaniyan"], "GARDEN CITY ONE-FMS-THA- Res-IFM": ["Muthuraj Kanakaraj"], "GOODWOOD-TEY- Res-IFM": ["Vijay"], "GREENSVILLE-SHO- Res-IFM": ["Vijay Krishnamurthy"], "IRIS COURT-CGL- Res-IFM": ["Karthikeyan Manoharan", "Somasundaram Kandaswamy"], "SIGNATURE-MAD- Res-Utility FMS": ["Karthikeyan Manoharan", "Prabhakaran Venugopal"], "SIGNATURE-MAD- Res-Utility STP": ["Karthikeyan Manoharan", "Gobinath Manisekar"], "MAPLETON-NVU- Res-IFM": ["Rajesh M"], "OPALINE-ECR- Res-IFM": ["Karthikeyan Manoharan", "Saravanakumar K"], "RIBBON WALK-MBKM- Res-IFM": ["Amarnath", "Karthikeyan Manoharan"], "OCEANIQUE-ECR- Res-IFM": ["Dhatchana Moorthi B"], "REFLECTION-ECR- Res-IFM": ["Sathishkumar Karunanidhi"], "ORCHARDS-VAD- Res-IFM": ["Narashimulu P E"], "PBEL CITY-KEL- Res-IFM": ["Vimalahasan C"], "PLATINA-POR- Res-IFM": ["Balamurugan V"], "BELLA VISTA-IYY- Res-IFM": ["Rajeshkumar", "Shanmugasundaram K"], "SAPPHIRE-SHO- Res-IFM": ["Muthuswamy M"], "REGENCY RAHEJA -RAP- Res-IFM": ["Velayutham V"], "RISINGTON-OMR- Res-IFM": ["Balachandran C", "Rathna Selvam X", "Sasikumar M"], "SHANTI GULMOHAR-RAP- Res-IFM": ["Karthikeyan Manoharan"], "SHANTINIKETAN-ADKM- Res-IFM": ["Karthikeyan Manoharan", "Vijay E"], "STAFFORD-TMVL- Res-IFM": ["Karthikeyan Manoharan", "Loganathan S"], "THE ACE-PRGD- Res-IFM": ["Akshay Kumar"], "PENNINSULA-MANP- Res-IFM": ["Balaji Chandran", "Karthikeyan Manoharan"], "Villa96-ECR- Res-IFM": ["Sivalingam", "Titus Soundararajan D"], "SKY CITY-AMB- Res-IFM": ["Karthikeyan Manoharan", "Sudharsan G M"], "CLOUD GRAZE-KKN- Res-IFM": ["Senthi Kumar D"]};
+const PIN_HASH={"RANI MEYYAMMAI-MS- Res-IFM": "1e45032b", "AREL-AZURE-SAN- Res-Utility(TECH)": "a6d785c4", "ARTISTICA-SHO- Res-IFM": "51f34fd2", "BANYAN-ALA- Res-IFM": "9a84c78c", "BELLA VISTA-IYY- Res-IFM": "1f9e8cfd", "CLOVER BY THE RIVER-KTPM- Res-IFM": "fd7d8cb7", "FAIRMONT-GDY- Res-IFM": "f544621b", "FOMRA HUES-IYY- Res-IFM": "ea83a43f", "GOODWOOD-TEY- Res-IFM": "1eaab911", "OCEANIQUE-ECR- Res-IFM": "73e1d262", "PLATINA-POR- Res-IFM": "545140e1", "REFLECTION-ECR- Res-IFM": "740dc0d8", "SAPPHIRE-SHO- Res-IFM": "f5a89847", "Villa96-ECR- Res-IFM": "4f676041", "INDIALAND TECH PARK-CBE- COM-HK": "0336ba6b", "MAHINDRA WC-SENG- Com-IFM": "97955149", "SINCERE SYNDICATION-TNAG- Res-HK": "32152dc3", "TCI INDIA-ADA- Res-HK": "ac7fd7a3", "ESTANCIA-POTI- Res-IFM": "5dc99feb", "GALLERIA-PV- Res-IFM": "2fc0f257", "ICON-KOY- Res-IFM": "a21bb3cb", "IRIS COURT-CGL- Res-IFM": "d6801e4e", "OPALINE-ECR- Res-IFM": "ca91beda", "PENNINSULA-MANP- Res-IFM": "dc67158f", "REGENCY RAHEJA -RAP- Res-IFM": "2a15a20c", "RESIDENCY EMBASSY -PER- Res-IFM": "d1e370f1", "RIBBON WALK-MBKM- Res-IFM": "2e7bb010", "SHANTI GULMOHAR-RAP- Res-IFM": "6f6cb59a", "SHANTINIKETAN-ADKM- Res-IFM": "7867a716", "STAFFORD-TMVL- Res-IFM": "8fc0c9c3", "L&T-WTC-ENA- Com-IFM": "43c586e8", "ZONASHA IT-BLR- Com-IFM": "0e96f9ca", "FORTUNE-KOV- Com-IFM": "7825db75", "AVM-VAD- Res-IFM": "6e69808a", "BLOOMINGADALE-PAM- Res-Utility": "9e1ba5af", "FANTASTIC URBAN TREE-VAN- Res-IFM": "4f1d27e0", "IRENE-MANP- Res-Utility": "a15a909e", "ORCHARDS-VAD- Res-IFM": "b14d4531", "SIGNATURE-MAD- Res-Utility FMS": "eb4a49f2", "SIGNATURE-MAD- Res-Utility STP": "34bb84cb", "THE ATRIUM-TYMR- Res-IFM": "0a8aa947", "YS ENCLAVE-VIR- Res-IFM": "b8c72b3b", "PVR-NUN- Com-Utility": "61e54cf2", "TEMPLE BAY-KOV- Com-Utility FMS": "fae86360", "CG ZENITH-MED- Res-IFM": "88d8c2f9", "COSMO CITY-PDP- Res-HK": "2ae0fda7", "COSMO CITY-PDP- Res-Utility": "f84e7666", "DRA Skylantis-SHO- Res-IFM": "a649ef13", "GARDEN CITY ONE-FMS-THA- Res-IFM": "2f4f8558", "GOOD FORTUNE-PER- Res-Utility": "86ba36cc", "GREENSVILLE-SHO- Res-IFM": "cb1935c9", "MAPLETON-NVU- Res-IFM": "16cf6d9f", "PALLAGIO-THO- Res-IFM": "04087b3b", "PANCHASHEEL-AMB- Res-IFM": "7576131c", "PBEL CITY-KEL- Res-IFM": "0f7baba5", "RISINGTON-OMR- Res-IFM": "5d8e0c00", "SAVOYE-SHO- Res-IFM": "0cb81aad", "THE ACE-PRGD- Res-IFM": "6410bee4", "THE ADDRESS-SHO- Res-IFM": "8d2208af", "SKY CITY-AMB- Res-IFM": "493151f0", "CLOUD GRAZE-KKN- Res-IFM": "b8375735"};
+function pinHash(pin,site){let x=2166136261;for(const ch of "UPS|"+site+"|"+pin){x^=ch.charCodeAt(0);x=Math.imul(x,16777619)>>>0}return x.toString(16).padStart(8,"0")}
+const LOGO="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAANYAAAAyBAMAAADSGDiJAAAAMFBMVEX////28vTb0tzow8jDrr6anbigfZbzQ0NZXYo3PXL1KCgiKGP3DAz7AADzAADiAADkSrR5AAAFYElEQVR42q2Yb2wURRjGf7vXgvDFmyKU89PRCIomZg2xCSjxFDUkhKSNiaYkNRUjJW0qjZFWCCpUQQuJHh7EVpScMVGQBmuMioFIicSQ8MfTxAglwftiqqC1X1T65279sDu7M7t7J706X3Zmdnae95n3needWYNAiY/xfxYhsH9260bgXe3AyqhP6gB
